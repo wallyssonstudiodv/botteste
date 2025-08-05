@@ -1,0 +1,8 @@
+{
+  "name": "whatsapp-bot-termux",
+  "version": "1.0.0",
+  "description": "Bot WhatsApp otimizado para rodar no Termux (Android)",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js",
+    "dev": "nodemon
