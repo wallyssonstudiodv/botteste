@@ -1,8 +1,16 @@
 {
-  "name": "whatsapp-bot-termux",
+  "name": "whatsapp-bot",
   "version": "1.0.0",
-  "description": "Bot WhatsApp otimizado para rodar no Termux (Android)",
+  "description": "Bot WhatsApp para disparo de anúncios automático com intervalo de 2 horas por grupo",
   "main": "bot.js",
   "scripts": {
     "start": "node bot.js",
-    "dev": "nodemon
+    "login": "node login.js"
+  },
+  "author": "Seu Nome",
+  "license": "MIT",
+  "dependencies": {
+    "@adiwajshing/baileys": "^5.0.2",
+    "qrcode-terminal": "^0.12.0"
+  }
+}
