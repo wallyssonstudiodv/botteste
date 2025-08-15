@@ -7,10 +7,10 @@
     "start": "node bot.js",
     "login": "node login.js"
   },
-  "author": "Seu Nome",
+  "author": "Wallysson Studio Dv",
   "license": "MIT",
   "dependencies": {
-    "@adiwajshing/baileys": "^6.6.0",
+    "@whiskeysockets/baileys": "^6.6.0",
     "qrcode-terminal": "^0.12.0"
   }
 }
