@@ -39,8 +39,8 @@ pkg install php nodejs git wget -y
 2. Criar diretório do projeto:
 
 ```bash
-mkdir bot-whatsapp
-cd bot-whatsapp
+mkdir botteste
+cd botteste
 ```
 
 3. Colocar **todos os arquivos do projeto** (`index.php`, `login.php`, `logout.php`, `bot.js`, `login.js`, `anuncios.json`, `grupos.json`, `package.json`) na pasta do projeto.
@@ -96,7 +96,7 @@ php -S 0.0.0.0:8080
 ## **Estrutura de arquivos**
 
 ```
-bot-whatsapp/
+botteste/
 ├── anuncios.json      # Armazena anúncios criados
 ├── grupos.json        # Lista de grupos monitorados
 ├── index.php          # Painel principal
