@@ -1,4 +1,9 @@
-const { default: makeWASocket, useSingleFileAuthState, fetchLatestBaileysVersion } = require("@adiwajshing/baileys");
+const { 
+    default: makeWASocket, 
+    useSingleFileAuthState, 
+    fetchLatestBaileysVersion, 
+    DisconnectReason 
+} = require("@whiskeysockets/baileys");
 const fs = require('fs');
 
 const SESSION_FILE = './session.json';
@@ -13,24 +18,31 @@ async function start() {
     const { version } = await fetchLatestBaileysVersion();
     const sock = makeWASocket({ auth: state, version });
 
+    // Conexão
     sock.ev.on('connection.update', (update) => {
         const { connection, lastDisconnect } = update;
         if(connection === 'close'){
-            if((lastDisconnect.error)?.output?.statusCode !== 401){
+            const statusCode = (lastDisconnect.error)?.output?.statusCode;
+            if(statusCode !== DisconnectReason.loggedOut){
+                console.log("Reconectando...");
                 start();
             } else {
-                console.log('Sessão desconectada');
+                console.log('Sessão desconectada, faça login novamente.');
             }
         } else if(connection === 'open'){
             console.log('Conectado ao WhatsApp');
         }
     });
 
+    // Salvar credenciais
     sock.ev.on('creds.update', saveState);
 
+    // Receber mensagens e disparar anúncios
     sock.ev.on('messages.upsert', async (m) => {
         try {
             const msg = m.messages[0];
+            if(!msg.message || msg.key.fromMe) return; // Ignorar mensagens próprias
+
             const from = msg.key.remoteJid;
 
             const grupos = JSON.parse(fs.readFileSync(GRUPOS_FILE));
@@ -48,7 +60,7 @@ async function start() {
             for(let a of anuncios){
                 if(a.ativo != 1) continue;
 
-                let text = a.mensagem;
+                let text = a.mensagem || '';
                 if(a.link_midia){
                     if(a.link_midia.match(/\.(jpg|jpeg|png|gif)$/i)){
                         await sock.sendMessage(from, { image: { url: a.link_midia }, caption: text });
