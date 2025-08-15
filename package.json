@@ -1,5 +1,5 @@
 {
-  "name": "whatsapp-bot",
+  "name": "botteste",
   "version": "1.0.0",
   "description": "Bot WhatsApp para disparo de anúncios automático com intervalo de 2 horas por grupo",
   "main": "bot.js",
@@ -7,10 +7,10 @@
     "start": "node bot.js",
     "login": "node login.js"
   },
-  "author": "Wallysson Studio Dv",
+  "author": "Seu Nome",
   "license": "MIT",
   "dependencies": {
-    "@whiskeysockets/baileys": "^6.6.0",
+    "@adiwajshing/baileys": "5.0.3",
     "qrcode-terminal": "^0.12.0"
   }
 }
