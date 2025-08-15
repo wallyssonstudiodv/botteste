@@ -10,7 +10,7 @@
   "author": "Seu Nome",
   "license": "MIT",
   "dependencies": {
-    "@adiwajshing/baileys": "^5.0.2",
+    "@adiwajshing/baileys": "^6.6.0",
     "qrcode-terminal": "^0.12.0"
   }
 }
