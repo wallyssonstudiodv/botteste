@@ -1,18 +1,14 @@
-const { default: makeWASocket, fetchLatestBaileysVersion, DisconnectReason, useSingleFileAuthState } = require("@whiskeysockets/baileys");
+const { default: makeWASocket, useMultiFileAuthState, fetchLatestBaileysVersion, DisconnectReason } = require("@whiskeysockets/baileys");
 const fs = require('fs');
 
-const SESSION_FILE = './session.json';
 const ANUNCIOS_FILE = './anuncios.json';
 const GRUPOS_FILE = './grupos.json';
 const INTERVALO = 2 * 60 * 60 * 1000; // 2 horas
-
-const { state, saveState } = useSingleFileAuthState(SESSION_FILE);
 let ultimoEnvio = {}; // { "grupoId": timestamp }
 
 async function start() {
-    const { version, isLatest } = await fetchLatestBaileysVersion();
-    console.log(`Usando versão WhatsApp Web: ${version.join('.')}, está atualizada? ${isLatest}`);
-
+    const { state, saveCreds } = await useMultiFileAuthState('./auth_info');
+    const { version } = await fetchLatestBaileysVersion();
     const sock = makeWASocket({ auth: state, version });
 
     sock.ev.on('connection.update', (update) => {
@@ -30,7 +26,7 @@ async function start() {
         }
     });
 
-    sock.ev.on('creds.update', saveState);
+    sock.ev.on('creds.update', saveCreds);
 
     sock.ev.on('messages.upsert', async (m) => {
         try {
@@ -38,11 +34,15 @@ async function start() {
             if (!msg.message || msg.key.fromMe) return;
 
             const from = msg.key.remoteJid;
+            if (!fs.existsSync(GRUPOS_FILE) || !fs.existsSync(ANUNCIOS_FILE)) {
+                console.log("Arquivos grupos.json ou anuncios.json não encontrados!");
+                return;
+            }
+
             const grupos = JSON.parse(fs.readFileSync(GRUPOS_FILE, 'utf-8'));
             const anuncios = JSON.parse(fs.readFileSync(ANUNCIOS_FILE, 'utf-8'));
 
-            const grupoAtivo = grupos.find(g => g.id === from);
-            if (!grupoAtivo) return;
+            const grupoAtivo = grupos.find(g => g.id === from);                                                                                                     if (!grupoAtivo) return;
 
             const agora = Date.now();
             if (ultimoEnvio[from] && (agora - ultimoEnvio[from] < INTERVALO)) {
@@ -54,9 +54,9 @@ async function start() {
                 if (a.ativo != 1) continue;
 
                 let text = a.mensagem || '';
-                const url = a.link_midia;
 
-                if (url) {
+                if (a.link_midia) {
+                    const url = a.link_midia;
                     if (url.match(/\.(jpg|jpeg|png|gif)$/i)) {
                         await sock.sendMessage(from, { image: { url }, caption: text });
                     } else if (url.match(/\.(mp4|mov|webm)$/i)) {
