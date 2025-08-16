@@ -1,87 +1,92 @@
 <?php
-$GRUPOS_FILE = 'grupos.json';
-$ANUNCIOS_FILE = 'anuncios.json';
+$anunciosFile = 'anuncios.json';
+$gruposFile = 'grupos.json';
+if(!file_exists($anunciosFile)) file_put_contents($anunciosFile, json_encode([]));
+$anuncios = json_decode(file_get_contents($anunciosFile), true);
+$grupos = file_exists($gruposFile) ? json_decode(file_get_contents($gruposFile), true) : [];
 
-$grupos = json_decode(file_get_contents($GRUPOS_FILE), true);
-$anuncios = json_decode(file_get_contents($ANUNCIOS_FILE), true);
+$action = $_POST['action'] ?? null;
+
+// Adicionar anúncio
+if($action==='add'){
+    $anuncios = json_decode(file_get_contents($anunciosFile), true);
+    $anuncios[] = [
+        "id"=>uniqid(),
+        "text"=>$_POST['text'],
+        "images"=>explode("\n",$_POST['images']),
+        "schedule"=>$_POST['schedule'],
+        "grupos"=>$_POST['grupos'] ?? [],
+        "active"=>true
+    ];
+    file_put_contents($anunciosFile, json_encode($anuncios, JSON_PRETTY_PRINT));
+    header("Location: index.php"); exit;
+}
+
+// Finalizar conexão
+if($action==='logout'){
+    if(file_exists('auth_info.json')) unlink('auth_info.json');
+    if(file_exists('qr_code.txt')) unlink('qr_code.txt');
+    header("Location: index.php"); exit;
+}
+
+$qrCode = file_exists('qr_code.txt') ? file_get_contents('qr_code.txt') : null;
 ?>
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Painel Botteste</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel WhatsApp Bot</title>
 <style>
-body { font-family: Arial; background: #121212; color: #fff; }
-h2 { color: #1E90FF; }
-input, textarea, select { width: 100%; padding: 5px; margin: 3px 0; }
-button { padding: 5px 10px; margin-top: 5px; }
-.container { max-width: 800px; margin: auto; }
-.card { background: #222; padding: 10px; margin-bottom: 10px; border-radius: 5px; }
+body{background:#0a0a0a;color:#fff;font-family:Arial;margin:0;padding:0}
+.container{max-width:600px;margin:auto;padding:20px}
+h1,h2{text-align:center;color:#ff0033}
+input,textarea,button{width:100%;margin:5px 0;padding:10px;border:none;border-radius:5px}
+input,textarea{background:#111;color:#fff}
+button{background:#0044ff;color:#fff;cursor:pointer}
+button:hover{background:#ff0033}
+img{display:block;margin:auto;max-width:100%}
+@media(max-width:600px){.container{padding:10px}}
+.checkbox-group{background:#111;padding:10px;border-radius:5px;max-height:150px;overflow-y:auto;margin:5px 0;}
 </style>
 </head>
 <body>
 <div class="container">
-<h1>Painel Botteste</h1>
+<h1>📱 Painel WhatsApp Bot</h1>
 
-<h2>Grupos</h2>
-<?php foreach($grupos as $i => $g): ?>
-<div class="card">
-<form method="POST" action="save.php">
-    <input type="hidden" name="tipo" value="grupo">
-    <input type="hidden" name="index" value="<?= $i ?>">
-    Nome: <input type="text" name="nome" value="<?= $g['nome'] ?>">
-    ID: <input type="text" name="id" value="<?= $g['id'] ?>">
-    <button type="submit" name="acao" value="editar">Salvar</button>
-    <button type="submit" name="acao" value="excluir">Excluir</button>
-</form>
-</div>
+<?php if($qrCode): ?>
+<h2>Escaneie o QR Code</h2>
+<img src="<?= $qrCode ?>" alt="QR Code">
+<?php else: ?>
+<h2>Bot conectado ✅</h2>
+<?php endif; ?>
+
+<h2>Adicionar Anúncio</h2>
+<form method="POST">
+<input type="hidden" name="action" value="add">
+<textarea name="text" placeholder="Texto do anúncio" required></textarea>
+<textarea name="images" placeholder="URLs das imagens (uma por linha)"></textarea>
+<input type="text" name="schedule" placeholder="Ex: 0 9 * * *" required>
+<h3>Selecionar grupos</h3>
+<div class="checkbox-group">
+<?php foreach($grupos as $g): ?>
+<label><input type="checkbox" name="grupos[]" value="<?= $g['id'] ?>"> <?= $g['subject'] ?></label><br>
 <?php endforeach; ?>
-
-<div class="card">
-<h3>Adicionar Grupo</h3>
-<form method="POST" action="save.php">
-<input type="hidden" name="tipo" value="grupo">
-Nome: <input type="text" name="nome">
-ID: <input type="text" name="id">
-<button type="submit" name="acao" value="adicionar">Adicionar</button>
-</form>
 </div>
+<button type="submit">Adicionar</button>
+</form>
 
 <h2>Anúncios</h2>
-<?php foreach($anuncios as $i => $a): ?>
-<div class="card">
-<form method="POST" action="save.php">
-    <input type="hidden" name="tipo" value="anuncio">
-    <input type="hidden" name="index" value="<?= $i ?>">
-    Título: <input type="text" name="titulo" value="<?= $a['titulo'] ?>">
-    Mensagem: <textarea name="mensagem"><?= $a['mensagem'] ?></textarea>
-    Link mídia: <input type="text" name="link_midia" value="<?= $a['link_midia'] ?>">
-    Ativo: <select name="ativo">
-        <option value="1" <?= $a['ativo']==1?'selected':'' ?>>Sim</option>
-        <option value="0" <?= $a['ativo']==0?'selected':'' ?>>Não</option>
-    </select>
-    <button type="submit" name="acao" value="editar">Salvar</button>
-    <button type="submit" name="acao" value="excluir">Excluir</button>
-</form>
-</div>
+<ul>
+<?php foreach($anuncios as $a): ?>
+<li><?= $a['text'] ?> - <?= $a['schedule'] ?> - Grupos: <?= implode(', ',$a['grupos']) ?></li>
 <?php endforeach; ?>
+</ul>
 
-<div class="card">
-<h3>Adicionar Anúncio</h3>
-<form method="POST" action="save.php">
-<input type="hidden" name="tipo" value="anuncio">
-Título: <input type="text" name="titulo">
-Mensagem: <textarea name="mensagem"></textarea>
-Link mídia: <input type="text" name="link_midia">
-Ativo: <select name="ativo">
-    <option value="1">Sim</option>
-    <option value="0">Não</option>
-</select>
-<button type="submit" name="acao" value="adicionar">Adicionar</button>
+<form method="POST">
+<input type="hidden" name="action" value="logout">
+<button type="submit">Finalizar Conexão</button>
 </form>
-</div>
-
 </div>
 </body>
 </html>
