@@ -1,82 +1,64 @@
-const { default: makeWASocket, useMultiFileAuthState, fetchLatestBaileysVersion, DisconnectReason } = require("@whiskeysockets/baileys");
-const fs = require('fs');
+import { default as makeWASocket, useSingleFileAuthState, DisconnectReason } from '@adiwajshing/baileys';
+import fs from 'fs';
+import QRCode from 'qrcode';
+import schedule from 'node-schedule';
+import axios from 'axios';
 
-const ANUNCIOS_FILE = './anuncios.json';
-const GRUPOS_FILE = './grupos.json';
-const INTERVALO = 2 * 60 * 60 * 1000; // 2 horas
-let ultimoEnvio = {}; // { "grupoId": timestamp }
+const { state, saveState } = useSingleFileAuthState('./auth_info.json');
+let sock;
 
-async function start() {
-    const { state, saveCreds } = await useMultiFileAuthState('./auth_info');
-    const { version } = await fetchLatestBaileysVersion();
-    const sock = makeWASocket({ auth: state, version });
+async function startBot(){
+    sock = makeWASocket({ auth: state, printQRInTerminal: false });
+    sock.ev.on('creds.update', saveState);
 
-    sock.ev.on('connection.update', (update) => {
-        const { connection, lastDisconnect } = update;
-        if (connection === 'close') {
-            const statusCode = lastDisconnect?.error?.output?.statusCode;
-            if (statusCode !== DisconnectReason.loggedOut) {
-                console.log("Reconectando...");
-                start();
-            } else {
-                console.log('Sessão desconectada, faça login novamente.');
+    sock.ev.on('connection.update', async (update)=>{
+        const { connection, qr, lastDisconnect } = update;
+
+        if(qr){
+            const qrImg = await QRCode.toDataURL(qr);
+            fs.writeFileSync('qr_code.txt', qrImg);
+        }
+
+        if(connection==='open'){
+            // Listar grupos
+            const chats = await sock.groupFetchAllParticipating();
+            const grupos = Object.values(chats).map(g => ({ id: g.id, subject: g.subject }));
+            fs.writeFileSync('grupos.json', JSON.stringify(grupos, null, 2));
+        }
+
+        if(connection==='close'){
+            if((lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut){
+                startBot();
             }
-        } else if (connection === 'open') {
-            console.log('Conectado ao WhatsApp');
         }
     });
 
-    sock.ev.on('creds.update', saveCreds);
+    scheduleJobs();
+}
 
-    sock.ev.on('messages.upsert', async (m) => {
-        try {
-            const msg = m.messages[0];
-            if (!msg.message || msg.key.fromMe) return;
-
-            const from = msg.key.remoteJid;
-            if (!fs.existsSync(GRUPOS_FILE) || !fs.existsSync(ANUNCIOS_FILE)) {
-                console.log("Arquivos grupos.json ou anuncios.json não encontrados!");
-                return;
-            }
-
-            const grupos = JSON.parse(fs.readFileSync(GRUPOS_FILE, 'utf-8'));
-            const anuncios = JSON.parse(fs.readFileSync(ANUNCIOS_FILE, 'utf-8'));
-
-            const grupoAtivo = grupos.find(g => g.id === from);                                                                                                     if (!grupoAtivo) return;
-
-            const agora = Date.now();
-            if (ultimoEnvio[from] && (agora - ultimoEnvio[from] < INTERVALO)) {
-                console.log(`Grupo ${from} aguardando intervalo para enviar anúncios`);
-                return;
-            }
-
-            for (let a of anuncios) {
-                if (a.ativo != 1) continue;
-
-                let text = a.mensagem || '';
-
-                if (a.link_midia) {
-                    const url = a.link_midia;
-                    if (url.match(/\.(jpg|jpeg|png|gif)$/i)) {
-                        await sock.sendMessage(from, { image: { url }, caption: text });
-                    } else if (url.match(/\.(mp4|mov|webm)$/i)) {
-                        await sock.sendMessage(from, { video: { url }, caption: text });
-                    } else {
-                        await sock.sendMessage(from, { text: text + "\n" + url });
+function scheduleJobs(){
+    if(!fs.existsSync('anuncios.json')) return;
+    const anuncios = JSON.parse(fs.readFileSync('anuncios.json', 'utf-8'));
+    anuncios.forEach(anuncio=>{
+        if(anuncio.active){
+            schedule.scheduleJob(anuncio.schedule, async ()=>{
+                const { text, images, grupos } = anuncio;
+                try{
+                    for(const groupId of grupos){
+                        if(images && images.length>0){
+                            for(const img of images){
+                                const buffer = (await axios.get(img,{responseType:'arraybuffer'})).data;
+                                await sock.sendMessage(groupId,{image:buffer,caption:text});
+                            }
+                        } else {
+                            await sock.sendMessage(groupId,{text});
+                        }
                     }
-                } else {
-                    await sock.sendMessage(from, { text });
-                }
-
-                console.log(`Anúncio "${a.titulo}" enviado para ${from}`);
-            }
-
-            ultimoEnvio[from] = agora;
-
-        } catch (e) {
-            console.error('Erro ao enviar anúncio: ', e);
+                    console.log('Anúncio enviado para grupos:', anuncio.id);
+                }catch(err){console.log('Erro:',err)}
+            });
         }
     });
 }
 
-start();
+startBot();
