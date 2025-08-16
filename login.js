@@ -1,27 +1,13 @@
-const { 
-    default: makeWASocket, 
-    useSingleFileAuthState, 
-    fetchLatestBaileysVersion, 
-    DisconnectReason, 
-    makeInMemoryStore 
-} = require("@whiskeysockets/baileys");
+const { default: makeWASocket, fetchLatestBaileysVersion, DisconnectReason, useSingleFileAuthState } = require("@adiwajshing/baileys");
 const qrcode = require('qrcode-terminal');
 
 const SESSION_FILE = './session.json';
 const { state, saveState } = useSingleFileAuthState(SESSION_FILE);
 
 async function start() {
-    // Buscar a versão mais recente do WhatsApp Web
     const { version } = await fetchLatestBaileysVersion();
+    const sock = makeWASocket({ auth: state, version });
 
-    // Criar o socket
-    const sock = makeWASocket({
-        auth: state,
-        version,
-        printQRInTerminal: false
-    });
-
-    // Eventos de conexão
     sock.ev.on('connection.update', (update) => {
         const { connection, lastDisconnect, qr } = update;
 
@@ -43,7 +29,6 @@ async function start() {
         }
     });
 
-    // Salvar credenciais sempre que forem atualizadas
     sock.ev.on('creds.update', saveState);
 }
 
