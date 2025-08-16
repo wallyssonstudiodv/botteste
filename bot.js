@@ -1,5 +1,4 @@
-const { default: makeWASocket, fetchLatestBaileysVersion, DisconnectReason } = require("@whiskeysockets/baileys");
-const { useSingleFileAuthState } = require("@whiskeysockets/baileys/lib/useSingleFileAuthState");
+const { default: makeWASocket, fetchLatestBaileysVersion, DisconnectReason, useSingleFileAuthState } = require("@whiskeysockets/baileys");
 const fs = require('fs');
 
 const SESSION_FILE = './session.json';
