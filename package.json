@@ -1,17 +1,18 @@
-
 {
-  "name": "botteste",
+  "name": "whatsapp-bot",
   "version": "1.0.0",
-  "description": "Bot WhatsApp para disparo de anúncios automático com intervalo de 2 horas por grupo",
+  "description": "Bot de WhatsApp com painel PHP e envio de anúncios para grupos",
   "main": "bot.js",
+  "type": "module",
   "scripts": {
-    "start": "node bot.js",
-    "login": "node login.js"
+    "start": "node bot.js"
   },
-  "author": "Seu Nome",
-  "license": "MIT",
   "dependencies": {
-    "@whiskeysockets/baileys": "6.6.0",
-    "qrcode-terminal": "^0.12.0"
-  }
+    "@adiwajshing/baileys": "6.6.0",
+    "axios": "^1.6.5",
+    "node-schedule": "^2.1.0",
+    "qrcode": "^1.5.1"
+  },
+  "author": "SeuNome",
+  "license": "MIT"
 }
