@@ -1,4 +1,4 @@
-const { default: makeWASocket, fetchLatestBaileysVersion, DisconnectReason, useSingleFileAuthState } = require("@adiwajshing/baileys");
+const { default: makeWASocket, fetchLatestBaileysVersion, DisconnectReason, useSingleFileAuthState, MessageType } = require("@adiwajshing/baileys");
 const fs = require('fs');
 
 const SESSION_FILE = './session.json';
@@ -36,8 +36,8 @@ async function start() {
             if(!msg.message || msg.key.fromMe) return;
 
             const from = msg.key.remoteJid;
-            const grupos = JSON.parse(fs.readFileSync(GRUPOS_FILE));
-            const anuncios = JSON.parse(fs.readFileSync(ANUNCIOS_FILE));
+            const grupos = JSON.parse(fs.readFileSync(GRUPOS_FILE, 'utf-8'));
+            const anuncios = JSON.parse(fs.readFileSync(ANUNCIOS_FILE, 'utf-8'));
 
             const grupoAtivo = grupos.find(g => g.id === from);
             if(!grupoAtivo) return;
@@ -52,24 +52,27 @@ async function start() {
                 if(a.ativo != 1) continue;
 
                 let text = a.mensagem || '';
+
                 if(a.link_midia){
-                    if(a.link_midia.match(/\.(jpg|jpeg|png|gif)$/i)){
-                        await sock.sendMessage(from, { image: { url: a.link_midia }, caption: text });
-                    } else if(a.link_midia.match(/\.(mp4|mov|webm)$/i)){
-                        await sock.sendMessage(from, { video: { url: a.link_midia }, caption: text });
+                    const url = a.link_midia;
+                    if(url.match(/\.(jpg|jpeg|png|gif)$/i)){
+                        await sock.sendMessage(from, { image: { url }, caption: text });
+                    } else if(url.match(/\.(mp4|mov|webm)$/i)){
+                        await sock.sendMessage(from, { video: { url }, caption: text });
                     } else {
-                        await sock.sendMessage(from, { text: text + "\n" + a.link_midia });
+                        await sock.sendMessage(from, { text: text + "\n" + url });
                     }
                 } else {
                     await sock.sendMessage(from, { text });
                 }
+
                 console.log(`Anúncio "${a.titulo}" enviado para ${from}`);
             }
 
             ultimoEnvio[from] = agora;
 
         } catch(e){
-            console.log('Erro ao enviar anúncio: ', e);
+            console.error('Erro ao enviar anúncio: ', e);
         }
     });
 }
