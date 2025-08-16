@@ -1,5 +1,6 @@
 const { default: makeWASocket, fetchLatestBaileysVersion, DisconnectReason, useSingleFileAuthState } = require("@adiwajshing/baileys");
 const qrcode = require('qrcode-terminal');
+const fs = require('fs');
 
 const SESSION_FILE = './session.json';
 const { state, saveState } = useSingleFileAuthState(SESSION_FILE);
@@ -17,7 +18,7 @@ async function start() {
         }
 
         if (connection === 'close') {
-            const statusCode = (lastDisconnect.error)?.output?.statusCode;
+            const statusCode = (lastDisconnect?.error)?.output?.statusCode;
             if (statusCode !== DisconnectReason.loggedOut) {
                 console.log("Reconectando...");
                 start();
