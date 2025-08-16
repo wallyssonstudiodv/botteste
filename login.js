@@ -1,13 +1,18 @@
-const { default: makeWASocket, fetchLatestBaileysVersion, DisconnectReason, useSingleFileAuthState } = require("@adiwajshing/baileys");
+const { default: makeWASocket, useSingleFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require("@whiskeysockets/baileys");
 const qrcode = require('qrcode-terminal');
-const fs = require('fs');
 
 const SESSION_FILE = './session.json';
 const { state, saveState } = useSingleFileAuthState(SESSION_FILE);
 
 async function start() {
-    const { version } = await fetchLatestBaileysVersion();
-    const sock = makeWASocket({ auth: state, version });
+    // Pega a versão mais recente do WhatsApp Web
+    const { version, isLatest } = await fetchLatestBaileysVersion();
+    console.log(`Usando versão WhatsApp Web: ${version.join('.')}, está atualizada? ${isLatest}`);
+
+    const sock = makeWASocket({
+        auth: state,
+        version
+    });
 
     sock.ev.on('connection.update', (update) => {
         const { connection, lastDisconnect, qr } = update;
@@ -18,15 +23,15 @@ async function start() {
         }
 
         if (connection === 'close') {
-            const statusCode = (lastDisconnect?.error)?.output?.statusCode;
+            const statusCode = lastDisconnect?.error?.output?.statusCode;
             if (statusCode !== DisconnectReason.loggedOut) {
                 console.log("Reconectando...");
                 start();
             } else {
-                console.log('Sessão desconectada, faça login novamente.');
+                console.log("Sessão desconectada, faça login novamente.");
             }
         } else if (connection === 'open') {
-            console.log('Conectado com sucesso!');
+            console.log("Conectado com sucesso!");
         }
     });
 
