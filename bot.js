@@ -1,9 +1,4 @@
-const { 
-    default: makeWASocket, 
-    useSingleFileAuthState, 
-    fetchLatestBaileysVersion, 
-    DisconnectReason 
-} = require("@whiskeysockets/baileys");
+const { default: makeWASocket, fetchLatestBaileysVersion, DisconnectReason, useSingleFileAuthState } = require("@adiwajshing/baileys");
 const fs = require('fs');
 
 const SESSION_FILE = './session.json';
@@ -18,7 +13,6 @@ async function start() {
     const { version } = await fetchLatestBaileysVersion();
     const sock = makeWASocket({ auth: state, version });
 
-    // Conexão
     sock.ev.on('connection.update', (update) => {
         const { connection, lastDisconnect } = update;
         if(connection === 'close'){
@@ -34,17 +28,14 @@ async function start() {
         }
     });
 
-    // Salvar credenciais
     sock.ev.on('creds.update', saveState);
 
-    // Receber mensagens e disparar anúncios
     sock.ev.on('messages.upsert', async (m) => {
         try {
             const msg = m.messages[0];
-            if(!msg.message || msg.key.fromMe) return; // Ignorar mensagens próprias
+            if(!msg.message || msg.key.fromMe) return;
 
             const from = msg.key.remoteJid;
-
             const grupos = JSON.parse(fs.readFileSync(GRUPOS_FILE));
             const anuncios = JSON.parse(fs.readFileSync(ANUNCIOS_FILE));
 
